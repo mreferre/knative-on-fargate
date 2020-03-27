@@ -1,15 +1,17 @@
 ### Background
 
-The industry is full of OSS projects that abstract a container orchestrator interface and provide the illusion of a FaaS (Function as a Service) experience. 
+The industry of OSS projects that abstract a container orchestrator interface and provide the illusion of a FaaS (Function as a Service) experience flourishing. 
 
 A good example of this is [OpenFaaS](https://www.openfaas.com/). As of late OpenFaaS has evolved to support AWS Fargate as a polyglot and orchestrator-agnostic serverless platform to run containers at scale. Today you can run OpenFaaS on [EKS/Fargate](https://blog.alexellis.io/nodeless-openfaas-with-aws-eks-and-fargate/) as well as [ECS/Fargate](https://www.openfaas.com/blog/openfaas-on-fargate/). If you are not familiar with AWS Fargate [this blog post about its role in the container world](https://aws.amazon.com/blogs/containers/the-role-of-aws-fargate-in-the-container-world/) may be helpful. 
 
-This repo will outline the instructions on how to setup [Knative](https://knative.dev/) (a Google owned OSS project) on top of EKS/Fargate. Given Knative is limited in scope to abstract Kubernetes only clusters, it cannot be used with other container orchestrators. 
+This repo will outline the instructions on how to setup a similar experience using [Knative](https://knative.dev/) (a Google owned OSS project) on top of EKS/Fargate. Given Knative is limited in scope to abstract Kubernetes only clusters, it cannot be used with other container orchestrators. 
 
 
 ### Why EKS/Fargate and not just EKS/EC2?
 
-Because Amazon EKS is built on the premise of using standard upstream Kubernetes, setting up Knative on EKS/EC2 is trivial. However a solution that provides a FaaS orchestration abstraction without having to deal with the mechanics of dealing with a cluster of virtual machines is appealing for a set of users. If you want more background about what problems EKS/Fargate can solve [this re:Invent session](https://www.youtube.com/watch?v=m-3tMXmWWQw) is a good start. 
+Because Amazon EKS is built on the premise of using standard upstream Kubernetes, setting up Knative on EKS/EC2 is trivial. If a user was to setup Knative with Gloo on an EKS cluster with EC2 worker nodes [these instructions](https://knative.dev/docs/install/knative-with-gloo/) would suffice.
+
+However a solution that provides a FaaS orchestration abstraction without having to deal with the mechanics of dealing with a cluster of virtual machines is appealing for a set of users. If you want more background about what problems EKS/Fargate can solve [this re:Invent session](https://www.youtube.com/watch?v=m-3tMXmWWQw) is a good start. 
 
 In addition to not managing an infrastructure, AWS Fargate provides the foundational building blocks for a `scale to zero` experience. Knative is one of the tools that can enable that.
 
@@ -24,9 +26,9 @@ This repo allows the reader to setup the following architecture:
 
 #### Getting ready and pre-requisites  
 
-The procedure below will setup Knative with Gloo support on an EKS control plane with no worker nodes. If a user was to setup Knative with Gloo on an EKS cluster with EC2 worker nodes [these instructions](https://knative.dev/docs/install/knative-with-gloo/) would suffice. 
+The procedure below will setup Knative with Gloo support on an EKS control plane enabled to deploy on AWS Fargate (with no EC2 worker nodes). A fully serverless setup.
 
-Because Fargate introduces some peculariaties there is a need to shadow those instructions while adapting them to the requirements. 
+Because Fargate introduces some peculariaties there is a need to shadow [these instructions](https://knative.dev/docs/install/knative-with-gloo/) while adapting them to the environment. 
 
 As a prerequisite, you need to have an AWS account and a client environment with a series of tools (e.g. proper AWS credentials, the AWS CLI, kubectl, eksctl, etc.). The instructions below assume the usage of [eksutils](https://github.com/mreferre/eksutils) albeit you can achieve the same result using any environment with the proper tools installed. 
 
@@ -39,7 +41,7 @@ docker run -it --rm --network host -v $HOME/.aws:/root/.aws -v $HOME/.kube:/root
 
 Inside the `eksutils` shell, we will set up a few variables we will need later:
 ```
-export REGION = us-east-1
+export REGION = eu-west-1
 export CLUSTERNAME = eksfargate
 ```
 
@@ -67,7 +69,7 @@ eksctl create iamserviceaccount --region $REGION --name alb-ingress-controller -
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.4/docs/examples/alb-ingress-controller.yaml
 ```
 
-At this point the ingress needs to be edited to inject the information require for it to work properly. To do so run the following command:
+At this point the ingress needs to be edited to inject the information required for it to work properly. To do so run the following command:
 ```
 kubectl edit deployment.apps/alb-ingress-controller -n kube-system
 ```
@@ -87,7 +89,7 @@ Save and exit.
 
 #### Preparing the assets for the Knative and Gloo setup   
 
-The standard setup command (`glooctl install knative`) is a black box and installs Knative and Gloo leveraging the Classic Load Balancer. Because EKS/Fargate doesn't support it, we need to find a way to inject the ALB instead. In addition to this, we need to customize a number of other things in the assets.  
+The standard setup command (`glooctl install knative`) is a black box and installs Knative and Gloo leveraging the Classic Load Balancer. Because EKS/Fargate doesn't support it, we need to find a way to inject the ALB instead. In addition to this, we need to customize other things that `glooctl` does by default.  
 
 *Note*: this repo ships with the two assets you need to deploy Knative and Gloo on EKS/Fargate. They are the `knative-gloo-fargate-first-batch.yaml` file and `knative-gloo-fargate-second-batch.yaml` file and are located in the [assets](./assets/) folder. If you are interested in understand how these assets have been generated you can read [this deep dive](./assets/README.md) so that you can yourself re-create them from scratch (if you ever need to). If you just want to se
 
