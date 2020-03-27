@@ -1,13 +1,13 @@
-#### Background
+### Background
 
 The industry is full of OSS projects that abstract a container orchestrator interface and provide the illusion of a FaaS (Function as a Service) experience. 
 
 A good example of this is [OpenFaaS](https://www.openfaas.com/). As of late OpenFaaS has evolved to support AWS Fargate as a polyglot and orchestrator-agnostic serverless platform to run containers at scale. Today you can run OpenFaaS on [EKS/Fargate](https://blog.alexellis.io/nodeless-openfaas-with-aws-eks-and-fargate/) as well as [ECS/Fargate](https://www.openfaas.com/blog/openfaas-on-fargate/). If you are not familiar with AWS Fargate [this blog post about its role in the container world](https://aws.amazon.com/blogs/containers/the-role-of-aws-fargate-in-the-container-world/) may be helpful. 
 
-This repo will outline the instructions on how to setup [Knative](https://knative.dev/)(a Google owned OSS project) on top of EKS/Fargate. Given Knative is limited in scope to abstract Kubernetes only clusters, it cannot be used with other container orchestrators. 
+This repo will outline the instructions on how to setup [Knative](https://knative.dev/) (a Google owned OSS project) on top of EKS/Fargate. Given Knative is limited in scope to abstract Kubernetes only clusters, it cannot be used with other container orchestrators. 
 
 
-#### Why EKS/Fargate and not just EKS/EC2?
+### Why EKS/Fargate and not just EKS/EC2?
 
 Because Amazon EKS is built on the premise of using standard upstream Kubernetes, setting up Knative on EKS/EC2 is trivial. However a solution that provides a FaaS orchestration abstraction without having to deal with the mechanics of dealing with a cluster of virtual machines is appealing for a set of users. If you want more background about what problems EKS/Fargate can solve [this re:Invent session](https://www.youtube.com/watch?v=m-3tMXmWWQw) is a good start. 
 
@@ -20,9 +20,9 @@ This repo allows the reader to setup the following architecture:
 ![knative-on-fargate](./images/knative-on-fargate.png)
 
 
-#### Getting started 
+### Getting started 
 
-### Getting ready and pre-requisites  
+#### Getting ready and pre-requisites  
 
 The procedure below will setup Knative with Gloo support on an EKS control plane with no worker nodes. If a user was to setup Knative with Gloo on an EKS cluster with EC2 worker nodes [these instructions](https://knative.dev/docs/install/knative-with-gloo/) would suffice. 
 
@@ -35,7 +35,7 @@ The starting point for us is a Cloud9 instance with proper administrative IAM cr
 docker run -it --rm --network host -v $HOME/.aws:/root/.aws -v $HOME/.kube:/root/.kube -v $HOME/environment:/environment -v /var/run/docker.sock:/var/run/docker.sock mreferre/eksutils:latest
 ```
 
-### Creating and configuring the EKS cluster   
+#### Creating and configuring the EKS cluster   
 
 Inside the `eksutils` shell, we will set up a few variables we will need later:
 ```
@@ -54,7 +54,7 @@ eksctl create fargateprofile --namespace gloo-system --cluster $CLUSTERNAME --na
 eksctl create fargateprofile --namespace knative-serving --cluster $CLUSTERNAME --name fp-knative-serving
 ```
 
-### Creating and configuring the ALB ingress   
+#### Creating and configuring the ALB ingress   
 
 The Knative with Gloo support setup routines deploy a Classic Load Balancer on a traditional EKS deployment. Because EKS/Fargate can't work with the CLB (because there are no EC2 instances) we need to modify the setup to leverage the Application Load Balancer. 
 
@@ -85,14 +85,14 @@ Add the cluster name, vpc id and region of your own setup:
 
 Save and exit. 
 
-### Preparing the assets for the Knative and Gloo setup   
+#### Preparing the assets for the Knative and Gloo setup   
 
 The standard setup command (`glooctl install knative`) is a black box and installs Knative and Gloo leveraging the Classic Load Balancer. Because EKS/Fargate doesn't support it, we need to find a way to inject the ALB instead. In addition to this, we need to customize a number of other things in the assets.  
 
-*Note*: this repo ships with the two assets you need to deploy Knative and Gloo on EKS/Fargate. They are the `knative-gloo-fargate-first-batch.yaml` file and `knative-gloo-fargate-second-batch.yaml` file. If you are interested in understand how these assets have been generated you can read [this deep dive](./assets/README.md) so that you can yourself re-create them from scratch (if you ever need to). If you just want to se
+*Note*: this repo ships with the two assets you need to deploy Knative and Gloo on EKS/Fargate. They are the `knative-gloo-fargate-first-batch.yaml` file and `knative-gloo-fargate-second-batch.yaml` file and are located in the [assets](./assets/) folder. If you are interested in understand how these assets have been generated you can read [this deep dive](./assets/README.md) so that you can yourself re-create them from scratch (if you ever need to). If you just want to se
 
 
-### Deploying the assets and setup Knative and Gloo
+#### Deploying the assets and setup Knative and Gloo
 
 We are now at the point where we can run the Knative and Gloo assets. 
 
@@ -107,7 +107,7 @@ kubectl apply -f knative-gloo-fargate-second-batch.yaml
 ```
 
 
-### Customizing the domain the application will be exposed to
+#### Customizing the domain the application will be exposed to
 
 Inspect the name of the ALB ingress that has been initialized:
 ```
@@ -146,7 +146,7 @@ At this point you should have all the plumbing ready to go. Time to move to depl
 
 #### Deploying an application that scales to zero on Fargate 
 
-Create this mywebapp-scales-to-zero.yaml file: 
+Create this `mywebapp-scales-to-zero.yaml` file: 
 
 ```
 apiVersion: serving.knative.dev/v1
@@ -190,7 +190,7 @@ sh-4.2#
 
 #### Deploying an application without cold starts 
 
-Create this mywebapp-no-cold-starts.yaml file: 
+Create this `mywebapp-no-cold-starts.yaml` file: 
 
 ```
 apiVersion: serving.knative.dev/v1
@@ -233,10 +233,6 @@ sh-4.2# curl -H 'Host: mywebapp-nocoldstarts.default.b497c7f1-gloosystem-knativ-
 This is my web app running on Knative/Fargate with no cold starts
 sh-4.2# 
 ```
-
-
-CHECK 443 on ALB 
-
 
 
 

@@ -1,5 +1,5 @@
 
-This folder contains the assets that has been pre-created for you to deploy Knative on AWS Fargate. The istructions below detail how these files have been created. These instructions are only useful if you need to re-create them (or want to understand all the details re how they have been created). Otherwise you can just follow the main instructions [here](.../README.md).
+This folder contains the assets that have been pre-created for you to deploy Knative on AWS Fargate. The istructions below detail how these files have been created. These instructions are only useful if you need to re-create them (or want to understand all the details re how they have been created). Otherwise you can just follow the main instructions [here](../README.md).
 
 To begin with, you have to generate the YAML file with a dry-run of the `glooctl` command and manually adjust a few things. You can generate the file launching this command: 
 ```
