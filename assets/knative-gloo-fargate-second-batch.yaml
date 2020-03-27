@@ -1,0 +1,78 @@
+apiVersion: caching.internal.knative.dev/v1alpha1
+kind: Image
+metadata:
+  labels:
+    serving.knative.dev/release: "v0.10.0"
+  name: queue-proxy
+  namespace: knative-serving
+spec:
+  image: gcr.io/knative-releases/knative.dev/serving/cmd/queue@sha256:5ff357b66622c98f24c56bba0a866be5e097306b83c5e6c41c28b6e87ec64c7c
+
+---
+
+# Source: gloo/templates/8-default-gateways.yaml
+apiVersion: gateway.solo.io/v1
+kind: Gateway
+metadata:
+  name: gateway-proxy
+  namespace: gloo-system
+  labels:
+    app: gloo
+spec:
+  bindAddress: "::"
+  bindPort: 8080
+  httpGateway: {}
+  useProxyProto: false
+  ssl: false
+  proxyNames:
+  - gateway-proxy
+---
+# Source: gloo/templates/8-default-gateways.yaml
+apiVersion: gateway.solo.io/v1
+kind: Gateway
+metadata:
+  name: gateway-proxy-ssl
+  namespace: gloo-system
+  labels:
+    app: gloo
+spec:
+  bindAddress: "::"
+  bindPort: 8443
+  httpGateway: {}
+  useProxyProto: false
+  ssl: true
+  proxyNames:
+  - gateway-proxy
+---
+# Source: gloo/templates/18-settings.yaml
+apiVersion: gloo.solo.io/v1
+kind: Settings
+metadata:
+  labels:
+    app: gloo
+  name: default
+  namespace: gloo-system
+spec:
+  gloo:
+    xdsBindAddr: "0.0.0.0:9977"
+    invalidConfigPolicy:
+      invalidRouteResponseBody: Gloo Gateway has invalid configuration. Administrators should
+        run `glooctl check` to find and fix config errors.
+      invalidRouteResponseCode: 404
+    disableKubernetesDestinations: false
+    disableProxyGarbageCollection: false
+  discoveryNamespace: gloo-system
+  kubernetesArtifactSource: {}
+  kubernetesConfigSource: {}
+  kubernetesSecretSource: {}
+  refreshRate: 60s
+  knative:
+    knativeExternalProxyAddress: "knative-external-proxy.gloo-system.svc.cluster.local"
+    knativeInternalProxyAddress: "knative-internal-proxy.gloo-system.svc.cluster.local"
+  gateway:
+    readGatewaysFromAllNamespaces: false
+    validation:
+      proxyValidationServerAddr: gloo:9988
+      alwaysAccept: true
+  discovery:
+    fdsMode: WHITELIST
