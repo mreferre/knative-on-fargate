@@ -146,6 +146,8 @@ At this point you should have all the plumbing ready to go. Time to move to depl
 
 #### Deploying an application that scales to zero on Fargate 
 
+The characteristic of this demo application deployment is that it scales to zero after a few seconds the endpoint doesn't get solicited. This means that the next call (after having scaled to zero) will experience a cold start and take a minute or so to respond to the first solicitation.   
+
 Create this `mywebapp-scales-to-zero.yaml` file: 
 
 ```
@@ -187,8 +189,9 @@ This is my nginx running on Knative/Fargate that scales to zero
 sh-4.2# 
 ```
 
-
 #### Deploying an application without cold starts 
+
+The characteristic of this demo application deployment is that it doesn't scale to zero because it will always have, at a minimum, one pod up and running to avoid cold starts. 
 
 Create this `mywebapp-no-cold-starts.yaml` file: 
 
@@ -219,7 +222,7 @@ Apply the file:
 kubectl apply -f mywebapp-no-cold-starts.yaml
 ```
 
-Inspect the Knative service deployed. Not it may take a minute or so to become `READY`: 
+Inspect the Knative service deployed. Not it may take a minute or so to become `READY` the first time: 
 ```
 sh-4.2# kubectl get ksvc mywebapp-nocoldstarts
 NAME                    URL                                                                                                           LATESTCREATED                 LATESTREADY                   READY   REASON
@@ -233,6 +236,5 @@ sh-4.2# curl -H 'Host: mywebapp-nocoldstarts.default.b497c7f1-gloosystem-knativ-
 This is my web app running on Knative/Fargate with no cold starts
 sh-4.2# 
 ```
-
 
 
