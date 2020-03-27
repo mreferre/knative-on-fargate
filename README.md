@@ -6,21 +6,19 @@ A good example of this is [OpenFaaS](https://www.openfaas.com/). As of late Open
 
 This repo will outline the instructions on how to setup a similar experience using [Knative](https://knative.dev/) (a Google owned OSS project) on top of EKS/Fargate. Given Knative is limited in scope to abstract Kubernetes only clusters, it cannot be used with other container orchestrators. 
 
-
-### Why EKS/Fargate and not just EKS/EC2?
-
-Because Amazon EKS is built on the premise of using standard upstream Kubernetes, setting up Knative on EKS/EC2 is trivial. If a user was to setup Knative with Gloo on an EKS cluster with EC2 worker nodes [these instructions](https://knative.dev/docs/install/knative-with-gloo/) would suffice.
-
-However a solution that provides a FaaS orchestration abstraction without having to deal with the mechanics of dealing with a cluster of virtual machines is appealing for a set of users. If you want more background about what problems EKS/Fargate can solve [this re:Invent session](https://www.youtube.com/watch?v=m-3tMXmWWQw) is a good start. 
-
-In addition to not managing an infrastructure, AWS Fargate provides the foundational building blocks for a `scale to zero` experience. Knative is one of the tools that can enable that.
-
-#### High level architecture
+### High level architecture
 
 This repo allows the reader to setup the following architecture:
 
 ![knative-on-fargate](./images/knative-on-fargate.png)
 
+### Why EKS/Fargate?
+
+Since Amazon EKS is built on the premise of using standard upstream Kubernetes, setting up Knative on EKS/EC2 is trivial. If a user was to setup Knative with Gloo on an EKS cluster with EC2 worker nodes [these instructions](https://knative.dev/docs/install/knative-with-gloo/) would suffice.
+
+However, a solution that provides a FaaS orchestration abstraction that doesn't involve dealing with virtual machines is appealing for a set of users aiming to a full serverless experience. If you want more background about what problems EKS/Fargate can solve [this re:Invent session](https://www.youtube.com/watch?v=m-3tMXmWWQw) is a good start. 
+
+In addition to not managing an infrastructure, AWS Fargate provides the foundational building blocks for a `scale to zero` experience. Knative is one of the tools that can enable that on top of Fargate.
 
 ### Getting started 
 
