@@ -39,8 +39,8 @@ docker run -it --rm --network host -v $HOME/.aws:/root/.aws -v $HOME/.kube:/root
 
 Inside the `eksutils` shell, we will set up a few variables we will need later:
 ```
-export REGION = eu-west-1
-export CLUSTERNAME = eksfargate
+export REGION=eu-west-1
+export CLUSTERNAME=eksfargate
 ```
 
 Now we will create an EKS cluster with some default Fargate profiles activated. This will take a few minutes: 
@@ -50,8 +50,8 @@ eksctl create cluster --name=$CLUSTERNAME --region=$REGION --fargate
 
 Because Knative and Gloo will deploy into specific namespaces (namely `gloo-system` and `knative-serving`) we need to explicitly setup a Fargate profile that matches them and allow the setup to start pods on Fargate: 
 ```
-eksctl create fargateprofile --namespace gloo-system --cluster $CLUSTERNAME --name fp-gloo-system
-eksctl create fargateprofile --namespace knative-serving --cluster $CLUSTERNAME --name fp-knative-serving
+eksctl create fargateprofile --namespace gloo-system --cluster $CLUSTERNAME --region=$REGION --name fp-gloo-system
+eksctl create fargateprofile --namespace knative-serving --cluster $CLUSTERNAME --region=$REGION --name fp-knative-serving
 ```
 
 #### Creating and configuring the ALB ingress   
@@ -89,32 +89,35 @@ Save and exit.
 
 The standard setup command (`glooctl install knative`) is a black box and installs Knative and Gloo leveraging the Classic Load Balancer. Because EKS/Fargate doesn't support it, we need to find a way to inject the ALB instead. In addition to this, we need to customize other things that `glooctl` does by default.  
 
-*Note*: this repo ships with the two assets you need to deploy Knative and Gloo on EKS/Fargate. They are the `knative-gloo-fargate-first-batch.yaml` file and `knative-gloo-fargate-second-batch.yaml` file and are located in the [assets](./assets/) folder. If you are interested in understand how these assets have been generated you can read [this deep dive](./assets/README.md) so that you can yourself re-create them from scratch (if you ever need to). If you just want to se
+*Note*: this repo ships with the two assets you need to deploy Knative and Gloo on EKS/Fargate. They are the `knative-gloo-fargate-first-batch.yaml` file and `knative-gloo-fargate-second-batch.yaml` file and are located in the [assets](./assets/) folder. If you are interested in understand how these assets have been generated you can read [this deep dive](./assets/README.md) so that you can yourself re-create them from scratch (if you ever need to). 
 
 
 #### Deploying the assets and setup Knative and Gloo
 
-We are now at the point where we can run the Knative and Gloo assets. 
+We are now at the point where we can run the Knative and Gloo assets. Before you do see clone this repo by running the following `git` command:
+```
+git clone http://github.com/mreferre/knative-on-fargate
+```
 
 Run the following command: 
 ```
-kubectl apply -f knative-gloo-fargate-first-batch.yaml
+kubectl apply -f ./knative-on-fargate/assets/knative-gloo-fargate-first-batch.yaml 
 ```
 
-Wait a few seconds (to avoid race conditions) and the run the following command:
+Wait a few seconds and the run the following command:
 ```
-kubectl apply -f knative-gloo-fargate-second-batch.yaml
+kubectl apply -f ./knative-on-fargate/assets/knative-gloo-fargate-second-batch.yaml
 ```
 
+Splitting the creation of the Kubernetes resources is required to avoid race conditions introduced by this deployment mechanism. 
 
 #### Customizing the domain the application will be exposed to
 
 Inspect the name of the ALB ingress that has been initialized:
 ```
-sh-4.2# kubectl get ingress -A
+kubectl get ingress -A
 NAMESPACE     NAME                     HOSTS   ADDRESS                                                                  PORTS   AGE
 gloo-system   knative-external-proxy   *       b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com   80      4m10s
-sh-4.2# 
 ```
 
 Customize the domain in config-map with this command:
@@ -174,19 +177,17 @@ Apply the file:
 kubectl apply -f mywebapp-scales-to-zero.yaml
 ```
 
-Inspect the Knative service deployed. Not it may take a minute or so to become `READY`: 
+Inspect the Knative service deployed. Note it may take a minute or so to become `READY`: 
 ```
-sh-4.2# kubectl get ksvc mywebapp-scalestozero
+kubectl get ksvc mywebapp-scalestozero
 NAME                    URL                                                                                                           LATESTCREATED                 LATESTREADY                   READY   REASON
 mywebapp-scalestozero   http://mywebapp-scalestozero.default.b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com   mywebapp-scalestozero-jqmjj   mywebapp-scalestozero-jqmjj   True    
-sh-4.2# 
 ```
 
 Take the URL and decompose it with a -H header and the ALB FQDN like this:
 ```
-sh-4.2# curl -H 'Host: mywebapp-scalestozero.default.b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com' http://b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com
-This is my nginx running on Knative/Fargate that scales to zero
-sh-4.2# 
+curl -H 'Host: mywebapp-scalestozero.default.b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com' http://b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com
+This is my nginx running on Knative/Fargate that scales to zero 
 ```
 
 #### Deploying an application without cold starts 
@@ -224,17 +225,15 @@ kubectl apply -f mywebapp-no-cold-starts.yaml
 
 Inspect the Knative service deployed. Not it may take a minute or so to become `READY` the first time: 
 ```
-sh-4.2# kubectl get ksvc mywebapp-nocoldstarts
+kubectl get ksvc mywebapp-nocoldstarts
 NAME                    URL                                                                                                           LATESTCREATED                 LATESTREADY                   READY   REASON
 mywebapp-nocoldstarts   http://mywebapp-nocoldstarts.default.b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com   mywebapp-nocoldstarts-dlrgg   mywebapp-nocoldstarts-dlrgg   True    
-sh-4.2# 
 ```
 
 Take the URL and decompose it with a -H header and the ALB FQDN like this:
 ```
-sh-4.2# curl -H 'Host: mywebapp-nocoldstarts.default.b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com' http://b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com
-This is my web app running on Knative/Fargate with no cold starts
-sh-4.2# 
+curl -H 'Host: mywebapp-nocoldstarts.default.b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com' http://b497c7f1-gloosystem-knativ-677e-1291493325.eu-west-1.elb.amazonaws.com
+This is my web app running on Knative/Fargate with no cold starts 
 ```
 
 
